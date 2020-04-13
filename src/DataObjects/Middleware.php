@@ -7,7 +7,7 @@ class Middleware
     private $name;
     private $parameters;
 
-    public function __construct(string $middleware)
+    public function __construct($middleware)
     {
         if(is_string($middleware)) {
             $tokens = explode(':', $middleware, 2);

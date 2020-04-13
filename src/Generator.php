@@ -251,7 +251,7 @@ class Generator
                     return (new $class_name)->rules();
                 }
             } catch (\Throwable $e) {
-                \Log::debug('dead code? ', ['error' => $e->getMessage()]);
+                \Log::debug('laravel-swagger: dead code? ', ['error' => $e->getMessage()]);
             }
         }
 

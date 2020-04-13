@@ -200,15 +200,19 @@ class Route
         $parameters = $actionInstance->getParameters();
 
         foreach ($parameters as $parameter) {
-            $reflectionClass = $parameter->getClass();
-            if (!$reflectionClass) {
-                continue;
-            }
+            try {
+                $reflectionClass = $parameter->getClass();
+                if (!$reflectionClass) {
+                    continue;
+                }
 
-            $class = $reflectionClass->getName();
+                $class = $reflectionClass->getName();
 
-            if (is_subclass_of($class, FormRequest::class)) {
-                return $class;
+                if (is_subclass_of($class, FormRequest::class)) {
+                    return $class;
+                }
+            } catch (\Throwable $e) {
+                \Log::debug('laravel-swagger: dead code? ', ['error' => $e->getMessage()]);
             }
         }
 

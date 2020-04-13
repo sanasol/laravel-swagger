@@ -238,16 +238,20 @@ class Generator
         $parameters = $action_instance->getParameters();
 
         foreach ($parameters as $parameter) {
-            $class = $parameter->getClass();
+            try {
+                $class = $parameter->getClass();
 
-            if (!$class) {
-                continue;
-            }
+                if (!$class) {
+                    continue;
+                }
 
-            $class_name = $class->getName();
+                $class_name = $class->getName();
 
-            if (is_subclass_of($class_name, FormRequest::class)) {
-                return (new $class_name)->rules();
+                if (is_subclass_of($class_name, FormRequest::class)) {
+                    return (new $class_name)->rules();
+                }
+            } catch (\Throwable $e) {
+                \Log::debug('dead code? ', ['error' => $e->getMessage()]);
             }
         }
 

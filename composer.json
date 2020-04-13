@@ -41,7 +41,7 @@
     },
     "require": {
         "php": ">=7.1",
-        "phpdocumentor/reflection-docblock": "^4.3",
+        "phpdocumentor/reflection-docblock": "^5.1",
         "swagger-api/swagger-ui": "^3.25"
     }
 }

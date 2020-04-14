@@ -133,7 +133,7 @@ class Generator
             $routes = array_filter($routes, function (Route $route) {
                 return preg_match(
                     '/^' . // Starts with prefix
-                    preg_quote($this->routeFilter, '/') .
+                    $this->routeFilter .
                     '/',
                     $route->uri()
                 );

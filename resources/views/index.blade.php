@@ -150,7 +150,9 @@
 
             onComplete: function () {
                 appendApiVersionSelectorToVersions();
-            }
+            },
+            
+            deepLinking: true
         });
     }
 </script>

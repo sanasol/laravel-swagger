@@ -175,7 +175,7 @@ class Generator
         $actionInstance = $this->getActionClassInstance();
         $docBlock = $actionInstance ? ($actionInstance->getDocComment() ?: '') : '';
 
-        [$isDeprecated, $summary, $description] = $this->parseActionDocBlock($docBlock);
+        [$isDeprecated, $summary, $description, $tags] = $this->parseActionDocBlock($docBlock);
 
         $path = $this->getRouteUri();
 
@@ -183,6 +183,7 @@ class Generator
             'summary' => $summary,
             'description' => $description,
             'deprecated' => $isDeprecated,
+            'tags' => $tags,
         ];
 
         $this->addActionDefinitions();
@@ -287,7 +288,7 @@ class Generator
     private function parseActionDocBlock(string $docBlock): array
     {
         if (empty($docBlock) || !$this->config['parseDocBlock']) {
-            return [false, '', ''];
+            return [false, '', '', []];
         }
 
         try {
@@ -298,9 +299,15 @@ class Generator
             $summary = $parsedComment->getSummary();
             $description = (string) $parsedComment->getDescription();
 
-            return [$isDeprecated, $summary, $description];
+            $_tags = $parsedComment->getTagsByName('tag');
+            $tags = [];
+            foreach($_tags as $tag) {
+                $tags[] = (string) $tag;
+            }
+
+            return [$isDeprecated, $summary, $description, $tags];
         } catch (\Exception $e) {
-            return [false, '', ''];
+            return [false, '', '', []];
         }
     }
 

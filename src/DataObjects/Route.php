@@ -5,6 +5,7 @@ namespace Mtrajano\LaravelSwagger\DataObjects;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Routing\Route as LaravelRoute;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -116,7 +117,7 @@ class Route
      *
      * @throws \ReflectionException
      */
-    public function getModel(): ?Model
+    public function getModel()
     {
         $modelName = $this->getModelNameFromMethodDocs()
             ?? $this->getModelNameFromControllerDocs();
@@ -125,13 +126,16 @@ class Route
             return null;
         }
 
-        if (!is_subclass_of($modelName, Model::class)) {
+        if (!is_subclass_of($modelName, Model::class) && !is_subclass_of($modelName, JsonResource::class)) {
             throw new LaravelSwaggerException(
                 "{$modelName} @model must be an instance of [" . Model::class . ']'
             );
         }
 
-        return new $modelName;
+        $rmodelName = $this->getRealModelNameFromMethodDocs();
+
+        return is_subclass_of($modelName, Model::class) ? new $modelName:
+            $modelName::make($rmodelName::hash('kanbantest'));
     }
 
     /**
@@ -253,6 +257,20 @@ class Route
         $docBlock = $docBlock ?? $this->getActionDocBlock();
 
         return get_annotations($docBlock, '@model')[0] ?? null;
+    }
+
+    /**
+     * Get annotation from specific model. You can pass the docBlock
+     * content on param $docBlock. By default will be used the docBlock
+     * from action.
+     *
+     * @throws \ReflectionException
+     */
+    private function getRealModelNameFromMethodDocs(?string $docBlock = null): ?string
+    {
+        $docBlock = $docBlock ?? $this->getActionDocBlock();
+
+        return get_annotations($docBlock, '@realmodel')[0] ?? null;
     }
 
     /**

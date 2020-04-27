@@ -3,6 +3,9 @@
 namespace Mtrajano\LaravelSwagger\Definitions;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\MissingValue;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -71,9 +74,9 @@ class DefinitionGenerator
         return array_reverse($this->definitions, true);
     }
 
-    private function getPropertyDefinition($column)
+    private function getPropertyDefinition($column, $val = null)
     {
-        $definition = $this->mountColumnDefinition($column);
+        $definition = $this->mountColumnDefinition($column, $val);
 
         if ($this->shouldGenerateExampleData) {
             $definition['example'] = $this->generateExampleData($column);
@@ -118,6 +121,9 @@ class DefinitionGenerator
 
     private function getModelColumns(): array
     {
+        if(!is_subclass_of($this->model, Model::class)) {
+            return $this->model->toArray(request());
+        }
         return Schema::getColumnListing($this->model->getTable());
     }
 
@@ -132,12 +138,18 @@ class DefinitionGenerator
         }
 
         $properties = [];
-        foreach ($columns as $column) {
-            if (in_array($column, $hiddenColumns)) {
-                continue;
-            }
+        foreach ($columns as $key => $column) {
+//            if (in_array($column, $hiddenColumns)) {
+//                continue;
+//            }
 
-            $properties[$column] = $this->getPropertyDefinition($column);
+            if(!is_subclass_of($this->model, Model::class)) {
+                $cols = $column instanceof JsonResource && !($column->resource instanceof MissingValue) ? json_decode(json_encode($column), true):
+                    $column;
+                $properties[$key] = $this->getPropertyDefinition($key, $cols);
+            } else {
+                $properties[$column] = $this->getPropertyDefinition($column);
+            }
         }
 
         return $properties;
@@ -200,7 +212,7 @@ class DefinitionGenerator
         return $this;
     }
 
-    private function mountColumnDefinition(string $column)
+    private function mountColumnDefinition(string $column, $val = null)
     {
         $casts = $this->model->getCasts();
         $datesFields = $this->model->getDates();
@@ -225,10 +237,29 @@ class DefinitionGenerator
             'boolean' => [
                 'type' => 'boolean',
             ],
+            'object' => [
+                'type' => 'object',
+            ],
             'string' => $defaultDefinition,
         ];
 
         $columnType = $this->model->hasCast($column) ? $casts[$column] : 'string';
+
+        dump($val);
+
+        if(is_array($val) || is_object($val) && (!($val instanceof Collection) && !($val->resource instanceof MissingValue))) {
+            $columnType = 'object';
+
+            $properties = [];
+            foreach ($val as $key => $column) {
+                $cols = $column instanceof JsonResource && !($column->resource instanceof MissingValue) ? json_decode(json_encode($column), true):
+                    (count((array)$column) > 1) ? (array)$column:$column;
+                $properties[$key] = $this->getPropertyDefinition($key, $cols);
+//                \Log::debug('debug deep', [$key => $column]);
+            }
+
+            $laravelTypesSwaggerTypesMapping['object']['properties'] = $properties;
+        }
 
         return $laravelTypesSwaggerTypesMapping[$columnType] ?? $defaultDefinition;
     }
@@ -249,6 +280,10 @@ class DefinitionGenerator
     private function generateFromRelations()
     {
         $baseModel = $this->model;
+        if(!is_subclass_of($baseModel, Model::class)) {
+            return;
+        }
+
         $relations = $this->getAllRelations($this->model);
 
         foreach ($relations as $relation) {
